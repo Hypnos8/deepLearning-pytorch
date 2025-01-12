@@ -89,7 +89,7 @@ loss_function = torch.nn.BCELoss()
 optimizer = torch.optim.AdamW(resNet.parameters(), lr=LEARNING_RATE, amsgrad=True, weight_decay=WEIGHT_DECAY)
 
 # create an object of type Trainer and set its early stopping criterion
-trainer = Trainer(model=resNet, train_dl=train_dl, val_test_dl=val_test_dl, optim=optimizer, crit=loss_function, early_stopping_patience=EARLY_STOPPING_PATIENCE, cuda=True)
+trainer = Trainer(model=resNet, train_dl=train_dl, val_test_dl=val_test_dl, optim=optimizer, crit=loss_function, early_stopping_patience=EARLY_STOPPING_PATIENCE, cuda=False)
 
 # go, go, go... call fit on trainer
 result = trainer.fit(epochs=EPOCHS)

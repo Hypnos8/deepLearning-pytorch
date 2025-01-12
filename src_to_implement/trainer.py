@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 from torch.utils.data import DataLoader
-from tqdm.autonotebook import tqdm
+#from tqdm.autonotebook import tqdm
 
 
 class Trainer:
