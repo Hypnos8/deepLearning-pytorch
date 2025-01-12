@@ -2,13 +2,13 @@ import os.path
 import random
 
 import skimage.color
-import torch.nn
 from torch.utils.data import Dataset
 from pathlib import Path
 from skimage.io import imread
 import numpy as np
 import torchvision as tv
-from torchvision.transforms import functional
+
+from src.CustomAngleRotation import CustomAngleRotation
 
 #from torchvision.transforms.v2 import functional
 
@@ -17,10 +17,30 @@ train_std = [0.16043035, 0.16043035, 0.16043035]
 
 
 class ChallengeDataset(Dataset):
+    """
+    Implements a Dataset as described in https://pytorch.org/tutorials/beginner/basics/data_tutorial.html
+    """
     def __init__(self, data, mode, rotation=True, mirroring=True):
         self.rotation = rotation
         self.mirroring = mirroring
         self.mode = mode
+
+        self.data = data
+
+        # Transforms modify the orginal dataset (e.g by rotating it), thus adding more variations and avoiding overfitting
+        self._setup_transorm(mode)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        current_data = self.data.iloc[index]
+        image_path = Path(current_data['filename'])
+        image = skimage.color.gray2rgb(imread(image_path))
+        image = self._transform(image)
+        return image, np.array([current_data['crack'], current_data['inactive']])
+
+    def _setup_transorm(self, mode):
         if not (mode == "train" or mode == "val"):
             raise ValueError
         if mode == "train":
@@ -36,24 +56,4 @@ class ChallengeDataset(Dataset):
         elif mode == "val":
             self._transform = tv.transforms.Compose([tv.transforms.ToPILImage(), tv.transforms.ToTensor(),
                                                      tv.transforms.Normalize(mean=train_mean, std=train_std)])
-        self.data = data
 
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        current_data = self.data.iloc[index]
-        image_path = Path(current_data['filename'])
-        image = skimage.color.gray2rgb(imread(image_path))
-        image = self._transform(image)
-        return image, np.array([current_data['crack'], current_data['inactive']])
-
-
-class CustomAngleRotation:
-    def __init__(self, angles, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.angles = angles
-
-    def __call__(self, x):
-        angle = random.choice(self.angles)
-        return functional.rotate(x, angle)

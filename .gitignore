@@ -1,5 +1,5 @@
 .idea/
 src_to_implement/Data/*.gz
-src_to_implement/images/
-src_to_implement/checkpoints/
+src/images/
+src/checkpoints/
 venv
