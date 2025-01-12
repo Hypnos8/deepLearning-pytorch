@@ -7,6 +7,9 @@ from torch.utils.data import DataLoader
 
 
 class Trainer:
+    """
+
+    """
     def __init__(self,
                  model,  # Model to be trained.
                  crit,  # Loss function
@@ -31,13 +34,31 @@ class Trainer:
         self.f1_score_val = []
 
     def save_checkpoint(self, epoch):
+        """
+        Save current model as PyTorch checkpoint file (ckp)
+        The trained model can later be imported and used IN PYTORCH
+        :param epoch:
+        :return:
+        """
         torch.save({'state_dict': self._model.state_dict()}, 'checkpoints/checkpoint_{:03d}.ckp'.format(epoch))
 
     def restore_checkpoint(self, epoch_n):
+        """
+        Load a checkpoint so it can be used
+        :param epoch_n:
+        :return:
+        """
         ckp = torch.load('checkpoints/checkpoint_{:03d}.ckp'.format(epoch_n), 'cuda' if self._cuda else None)
         self._model.load_state_dict(ckp['state_dict'])
 
     def save_onnx(self, fn):
+        """
+        Save current model as ONXX
+        The trained model can later be imported and used by most Frameworks (PyTorch, TensorFlow etc)
+
+        :param fn: File where the model will be saved
+        :return:
+        """
         m = self._model.cpu()
         m.eval()
         x = torch.randn(1, 3, 300, 300, requires_grad=True)
@@ -54,35 +75,48 @@ class Trainer:
                                     'output': {0: 'batch_size'}})
 
     def train_step(self, x, y):
-        # perform following steps:
+        """
+        Performs a single training step (usually involing one batch)
+        :param x: data
+        :param y: Labels of the data
+        :return: Caluclated Loss
+        """
         # -reset the gradients. By default, PyTorch accumulates (sums up) gradients when backward() is called. This behavior is not required here, so you need to ensure that all the gradients are zero before calling the backward.
         self._optim.zero_grad()
 
-        # -propagate through the network
+        # propagate through the network
         pred = self._model(x)
 
-        # -calculate the loss_function
+        # calculate the loss_function
         loss = self._crit(pred, y.type(torch.float))
 
-        # -compute gradient by backward propagation
-        # self._crit.backward(loss)
+        # compute gradient by backward propagation
         loss.backward()
 
-        # -update weights
+        # update weights
         self._optim.step()
 
         # -return the loss
         return loss
 
     def val_test_step(self, x, y):
+        """
+        Performs a single validation (that is, no backward propagation/learning!)  step,  usually involing one batch
+        :param x:
+        :param y:
+        :return:
+        """
         # propagate through the network and calculate the loss and predictions
         y_pred = self._model(x)
         loss = self._crit(y_pred, y.type(torch.float))
 
-        # return the loss and the predictions
         return loss, y_pred
 
     def train_epoch(self):
+        """
+        Train for one epoche (= going once throught the whole training data set)
+        :return:
+        """
         # set training mode
         self._model.train()
 
@@ -107,54 +141,48 @@ class Trainer:
         return avg_loss  # Return average loss per Batch
 
     def val_test(self):
-        # set eval mode. Some layers have different behaviors during training and testing (for example: Dropout, BatchNorm, etc.). To handle those properly, you'd want to call model.eval()
+        """
+        Goes through the whole validation data set and prints the metrics
+        :return:
+        """
+        # set eval mode. Some layers have different behaviors during training and testing (for example: Dropout, BatchNorm, etc.).
+        # To handle those properly, you'd want to call model.eval()
         self._model.eval()
 
         # disable gradient computation. Since you don't need to update the weights during testing, gradients aren't required anymore.
-        # torch.no_grad()
-        # torch.inference_mode() is preferred over torch.no_grad()
         with torch.inference_mode():
-
             total_loss = 0.0
             labels = []
             predictions = []
+
             # iterate through the validation set
             for batch in self._val_test_dl:
-
                 data, labels_batch = batch
                 # transfer the batch to the gpu if given
                 if self._cuda:
                     data = data.to('cuda')
                     labels_batch = labels_batch.to('cuda')
 
-
                 # perform a validation step
-                loss, predictions_batch = self.val_test_step(data, labels_batch)  # consumes big amount of vram, why?
+                loss, predictions_batch = self.val_test_step(data, labels_batch)  # consumes big amount of vram
 
                 # save the predictions_batch and the labels_batch for each batch
                 total_loss += loss
                 labels.append(labels_batch.cpu().detach().numpy())
                 predictions.append(predictions_batch.cpu().detach().numpy())
 
-        # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
-        labels = np.concatenate(labels)
-        predictions = np.concatenate(predictions)
-        predictions = np.where(predictions > 0.5, 1, 0)
-        avg_loss = total_loss / len(self._val_test_dl)
-        accuracy = accuracy_score(labels, predictions, normalize=True)
-        precision = precision_score(labels, predictions, average="micro")
-        recall = recall_score(labels, predictions, average="micro")
-        f1 = f1_score(labels, predictions, average="micro")
-        self.f1_score_val.append(f1)
+                self.__print_metrics(labels, predictions, total_loss)
 
-        # return the loss and print the calculated metrics
-        print('Accuracy: ', accuracy)
-        print('Precision: ', precision)
-        print('Recall: ', recall)
-        print('F1: ', f1)
-        return avg_loss
+
 
     def fit(self, epochs=-1):
+        """
+        Let the model fit (= learn)  the training data
+        This will repeatedly run a training and a validation period until a stop criterion is met
+
+        :param epochs:
+        :return:
+        """
         assert self._early_stopping_patience > 0 or epochs > 0
 
         # create a list for the train and validation losses, and create a counter for the epoch
@@ -165,11 +193,9 @@ class Trainer:
         best_loss = None
         early_stopping_counter = 0
         while True:
-
             # stop by epoch number
             if epoche_counter >= epochs:
                 break
-
             # train for a epoch and then calculate the loss and metrics on the validation set
             loss_train = self.train_epoch()
             loss_validate = self.val_test()
@@ -192,13 +218,10 @@ class Trainer:
                 print("-- Best loss (until now) at epoche: ", epoche_counter, "with best_loss value ", best_loss)
                 early_stopping_counter = 0
 
-                # use the save_checkpoint function to save the model (can be restricted to epochs with improvement)
+                # use the save_checkpoint function to save the model
                 self.save_checkpoint(epoche_counter)
 
             if early_stopping_counter > self._early_stopping_patience:
-
-                # if loss_train > loss_val:
-                    # break
                 print("Early stop")
                 break
 
@@ -211,3 +234,22 @@ class Trainer:
 
         # return the losses for both training and validation
         return train_losses, validation_losses
+
+    def __print_metrics(self, labels, predictions, total_loss):
+        # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
+        labels = np.concatenate(labels)
+        predictions = np.concatenate(predictions)
+        predictions = np.where(predictions > 0.5, 1, 0)
+        avg_loss = total_loss / len(self._val_test_dl)
+        accuracy = accuracy_score(labels, predictions, normalize=True)
+        precision = precision_score(labels, predictions, average="micro")
+        recall = recall_score(labels, predictions, average="micro")
+        f1 = f1_score(labels, predictions, average="micro")
+        self.f1_score_val.append(f1)
+
+        # return the loss and print the calculated metrics
+        print('Accuracy: ', accuracy)
+        print('Precision: ', precision)
+        print('Recall: ', recall)
+        print('F1: ', f1)
+        return avg_loss

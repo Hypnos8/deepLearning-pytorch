@@ -5,9 +5,7 @@ import sys
 import model
 import torchvision as tv
 
-#epoch = int(sys.argv[1])
 epoch = 189
-#TODO: Enter your model here
 
 resNet = model.ResNet()
 
