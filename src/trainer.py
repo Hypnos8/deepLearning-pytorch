@@ -171,7 +171,7 @@ class Trainer:
                 labels.append(labels_batch.cpu().detach().numpy())
                 predictions.append(predictions_batch.cpu().detach().numpy())
 
-                self.__print_metrics(labels, predictions, total_loss)
+        self.__print_metrics(labels, predictions, total_loss)
 
 
 
