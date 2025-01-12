@@ -171,8 +171,23 @@ class Trainer:
                 labels.append(labels_batch.cpu().detach().numpy())
                 predictions.append(predictions_batch.cpu().detach().numpy())
 
-        self.__print_metrics(labels, predictions, total_loss)
+        # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
+        labels = np.concatenate(labels)
+        predictions = np.concatenate(predictions)
+        predictions = np.where(predictions > 0.5, 1, 0)
+        avg_loss = total_loss / len(self._val_test_dl)
+        accuracy = accuracy_score(labels, predictions, normalize=True)
+        precision = precision_score(labels, predictions, average="micro")
+        recall = recall_score(labels, predictions, average="micro")
+        f1 = f1_score(labels, predictions, average="micro")
+        self.f1_score_val.append(f1)
 
+        # return the loss and print the calculated metrics
+        print('Accuracy: ', accuracy)
+        print('Precision: ', precision)
+        print('Recall: ', recall)
+        print('F1: ', f1)
+        return avg_loss
 
 
     def fit(self, epochs=-1):
@@ -235,21 +250,3 @@ class Trainer:
         # return the losses for both training and validation
         return train_losses, validation_losses
 
-    def __print_metrics(self, labels, predictions, total_loss):
-        # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
-        labels = np.concatenate(labels)
-        predictions = np.concatenate(predictions)
-        predictions = np.where(predictions > 0.5, 1, 0)
-        avg_loss = total_loss / len(self._val_test_dl)
-        accuracy = accuracy_score(labels, predictions, normalize=True)
-        precision = precision_score(labels, predictions, average="micro")
-        recall = recall_score(labels, predictions, average="micro")
-        f1 = f1_score(labels, predictions, average="micro")
-        self.f1_score_val.append(f1)
-
-        # return the loss and print the calculated metrics
-        print('Accuracy: ', accuracy)
-        print('Precision: ', precision)
-        print('Recall: ', recall)
-        print('F1: ', f1)
-        return avg_loss
