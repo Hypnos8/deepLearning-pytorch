@@ -24,10 +24,12 @@ Source code files are located in src/
 # Usage
 The training process can be started by running `train.py`
 Checkpoints (as PyTorch Checkpoints) are automatically stored at the folder checkpoints
+After each Epoch some metrics (F1, Accuracy, Precision) are printed. They can be used to identify the best run and to store the corresponding checkpoint of the epoche.
+
 
 
 ## Reusing the project for other training tasks
-* Model.py has to be adjusted to match your own model
+* Model.py has to be adjusted to match the  desired model
 * DataSets
   * data.py has to be adjusted to meet your needs (e.g change transformations), but also on how you want to load your data
   * TrainHelper.py has to be adjusted as well, as it defines where to laod the data from and which labels are considered
