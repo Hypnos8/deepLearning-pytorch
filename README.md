@@ -8,7 +8,11 @@ Source code files are located in src/
   * The data sets consists of a CSV file (containing filenames,cracked, and inactive) and the actual image files
 * The actual ResNet Model is defined in model.py
   * It uses ResBlocks that are defined in ResBlock.py
-* The code for Training/Evaluation data can be found in trainer.py
+* The code for Fitting  the Network can  be found in trainer.py
+  * The Fitting process  
+    * Consists of multiple iterations of Training and Validation 
+    * stops for after a  predefined number of epochs, or when the early stop criterium is met (that is, the loss wasn't improved over the last N epochs)
+  * Checkpoints are automatically saved when the current loss is better than all previous ones
 * Starting an actual training is done in train.py
   * It uses some helper Methods defined in TrainHeper.py 
 
@@ -17,8 +21,12 @@ Source code files are located in src/
 * src/showImage.py is just a little script that shows how a augmentend picture looks like (not too important)
 * src/PyTorchChallengeTest.py contains test cases.
 
-# Reusability
+# Usage
+The training process can be started by running `train.py`
+Checkpoints (as PyTorch Checkpoints) are automatically stored at the folder checkpoints
 
+
+## Reusing the project for other training tasks
 * Model.py has to be adjusted to match your own model
 * DataSets
   * data.py has to be adjusted to meet your needs (e.g change transformations), but also on how you want to load your data
